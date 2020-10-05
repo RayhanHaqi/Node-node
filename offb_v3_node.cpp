@@ -69,11 +69,11 @@ int main(int argc, char **argv)
     ros::Subscriber current_pos = nh.subscribe<geometry_msgs::PoseStamped> //Subscribe posisi drone
             ("mavros/local_position/pose", 10, callback);
     ros::Subscriber topic_qr_tengah = nh.subscribe<offb_v3::Targetmsg> //Subscribe qrcode meja 1 (tengah)
-            ("tengah/data", 10, callback2);
+            ("front/tengah", 10, callback2);
     ros::Subscriber topic_qr_kiri = nh.subscribe<offb_v3::Targetmsg> //Subscribe qrcode 2 (kiri)
-            ("kiri/data", 10, callback3);       
+            ("front/kiri", 10, callback3);       
     ros::Subscriber topic_qr_kanan = nh.subscribe<offb_v3::Targetmsg> //Subscribe qrcode 3 (kanan)
-            ("kanan/data", 10, callback4);
+            ("front/kanan", 10, callback4);
 
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(32.0);
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
             }
         }
 
-        local_pos_pub.publish(pose);
+        cmd_pub.publish(cmd_msg);
         ros::spinOnce();
         rate.sleep();
     }
@@ -192,13 +192,13 @@ int main(int argc, char **argv)
             cmd_pub.publish(cmd_msg);
             //subs data qrcode
             if (meja_tujuan == 1){
-                qrcode = data_qr_meja_1; //ganti
+                qrcode = data_tengah.data; 
             }
             else if (meja_tujuan == 2){
-                qrcode = data_qr_meja_2; //ganti
+                qrcode = data_kiri.data; 
             }
             else if (meja_tujuan == 3){
-                qrcode = data_qr_meja_3; //ganti
+                qrcode = data_kanan.data;
             }
 
             if (qrcode){
