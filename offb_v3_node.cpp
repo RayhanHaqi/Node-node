@@ -36,7 +36,7 @@ void callback3(const std_msgs::Int16::ConstPtr& msg){
 }
 std_msgs::Int16 qr_kanan;
 void callback4(const std_msgs::Int16::ConstPtr& msg){
-    qr_kiri = *msg;
+    qr_kanan = *msg;
 }
 offb_v3::Targetmsg center_qr;
 void callback5(const offb_v3::Targetmsg::ConstPtr& msg){
