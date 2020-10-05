@@ -9,11 +9,73 @@
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
-#include <mavros_msgs/Twist.h>
+#include <geometry_msgs/Twist.h>
+
+class PID{
+    private:
+        double _dt;
+        double _max;
+        double _min;
+        double _Kp;
+        double _Kd;
+        double _Ki;
+        double _pre_error;
+        double _integral;
+    public:
+        PID(double dt, double max, double min, double Kp, double Kd, double Ki);
+        double calculate(double setpoint, double pv);
+};
+
+PID::PID(double dt, double max, double min, double Kp, double Kd, double Ki){
+    _dt = dt;
+    _max = max;
+    _min = min;
+    _Kp = Kp;
+    _Kd = Kd;
+    _Ki = Ki;
+    _pre_error = 0;
+    _integral = 0;
+
+}
+
+double PID::calculate(double setpoint, double pv){
+    // Calculate error
+    double error = setpoint - pv;
+
+    // Proportional term
+    double Pout = _Kp * error;
+
+    // Integral term
+    _integral += error * _dt;
+    double Iout = _Ki * _integral;
+
+    // Derivative term
+    double derivative = (error - _pre_error) / _dt;
+    double Dout = _Kd * derivative;
+
+    // Calculate total output
+    double output = Pout + Iout + Dout;
+
+    // Restrict to max/min
+    if( output > _max )
+        output = _max;
+    else if( output < _min )
+        output = _min;
+
+    // Save error to previous error
+    _pre_error = error;
+
+    return output;
+}
 
 mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
+}
+
+geometry_msgs::PoseStamped current_position;
+void callback(const geometry_msgs::PoseStamped::ConstPtr& msg){
+    current_position = *msg;
 }
 
 int main(int argc, char **argv)
@@ -31,6 +93,8 @@ int main(int argc, char **argv)
             ("mavros/set_mode");
     ros::Publisher cmd_pub = nh.advertise<geometry_msgs::Twist> //Publish kecepatan drone
             ("mavros/setpoint_velocity/cmd_vel_unstamped", 10);
+    ros::Subscriber current_pos = nh.subscribe<geometry_msgs::PoseStamped> //Subscribe posisi drone
+            ("mavros/local_position/pose", 10, callback);
 
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(20.0);
@@ -42,15 +106,18 @@ int main(int argc, char **argv)
     }
 
     geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 0;
-    pose.pose.position.y = 0;
-    pose.pose.position.z = 2;
-
+    
     geometry_msgs::Twist cmd_msg;
+    cmd_msg.linear.x = 0;
+    cmd_msg.linear.y = 0;
+    cmd_msg.linear.z = 0;
+    cmd_msg.angular.x = 0;
+    cmd_msg.angular.y = 0;
+    cmd_msg.angular.z = 0;
 
     //send a few setpoints before starting
     for(int i = 100; ros::ok() && i > 0; --i){
-        local_pos_pub.publish(pose);
+        cmd_pub.publish(cmd_msg);
         ros::spinOnce();
         rate.sleep();
     }
@@ -82,7 +149,7 @@ int main(int argc, char **argv)
             }
         }
 
-        local_pos_pub.publish(pose);
+        cmd_pub.publish(cmd_msg);
 
         ros::spinOnce();
         rate.sleep();
