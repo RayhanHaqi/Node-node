@@ -12,7 +12,7 @@
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
-
+#include <std_msgs/Int16.h>
 #include "offb_v3/pid.hpp"
 #include <offb_v3.msg/Targetmsg.h>
 
@@ -26,19 +26,22 @@ geometry_msgs::PoseStamped current_position;
 void callback(const geometry_msgs::PoseStamped::ConstPtr& msg){
     current_position = *msg;
 }
-offb_v3::Targetmsg qr_tengah;
-void callback2(const offb_v3::Targetmsg::ConstPtr& msg){
+std_msgs::Int16 qr_tengah;
+void callback2(const std_msgs::Int16::ConstPtr& msg){
     qr_tengah = *msg;
 }
-offb_v3::Targetmsg qr_kiri;
-void callback3(const offb_v3::Targetmsg::ConstPtr& msg){
+std_msgs::Int16 qr_kiri;
+void callback3(const std_msgs::Int16::ConstPtr& msg){
     qr_kiri = *msg;
 }
-offb_v3::Targetmsg qr_kanan;
-void callback4(const offb_v3::Targetmsg::ConstPtr& msg){
+std_msgs::Int16 qr_kanan;
+void callback4(const std_msgs::Int16::ConstPtr& msg){
     qr_kiri = *msg;
 }
-
+offb_v3::Targetmsg center_qr;
+void callback5(const offb_v3::Targetmsg::ConstPtr& msg){
+    center_qr = *msg;
+}
 float jarak_titik(float tujuan_x, float tujuan_y, float tujuan_z, float asal_x, float asal_y, float asal_z){
     float jarak_x = tujuan_x - asal_x;
     float jarak_y = tujuan_y - asal_y;
@@ -68,12 +71,14 @@ int main(int argc, char **argv)
             ("mavros/setpoint_velocity/cmd_vel_unstamped", 10);
     ros::Subscriber current_pos = nh.subscribe<geometry_msgs::PoseStamped> //Subscribe posisi drone
             ("mavros/local_position/pose", 10, callback);
-    ros::Subscriber topic_qr_tengah = nh.subscribe<offb_v3::Targetmsg> //Subscribe qrcode meja 1 (tengah)
+    ros::Subscriber topic_qr_tengah = nh.subscribe<std_msgs::Int16> //Subscribe qrcode meja 1 (tengah)
             ("front/tengah", 10, callback2);
-    ros::Subscriber topic_qr_kiri = nh.subscribe<offb_v3::Targetmsg> //Subscribe qrcode 2 (kiri)
+    ros::Subscriber topic_qr_kiri = nh.subscribe<std_msgs::Int16> //Subscribe qrcode 2 (kiri)
             ("front/kiri", 10, callback3);       
-    ros::Subscriber topic_qr_kanan = nh.subscribe<offb_v3::Targetmsg> //Subscribe qrcode 3 (kanan)
+    ros::Subscriber topic_qr_kanan = nh.subscribe<std_msgs::Int16> //Subscribe qrcode 3 (kanan)
             ("front/kanan", 10, callback4);
+    ros::Subscriber current_qr = nh.subscribe<offb_v3::Targetmsg>
+            ("front/processed", 10, callback5)
 
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(32.0);
@@ -226,8 +231,8 @@ int main(int argc, char **argv)
             }
             else if (ros::Time::now() - stay < ros::Duration(3.0)){
                 cmd_msg.linear.x = mypid_x.calculate(lokasi_misi[misi_tujuan][0], current_position.pose.position.x);
-                cmd_msg.linear.y = mypid_y.calculate(0, center_qr); //ganti
-                cmd_msg.linear.z = mypid_z.calculate(0, center_qr); //ganti
+                cmd_msg.linear.y = mypid_y.calculate(0, center_qr.offset_y);
+                cmd_msg.linear.z = mypid_z.calculate(0, center_qr.offset_x);
                 cmd_pub.publish(cmd_msg);
             }
             else if (ros::Time::now() - stay > ros::Duration(3.0)){
