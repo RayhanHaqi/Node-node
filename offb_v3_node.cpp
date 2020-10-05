@@ -170,7 +170,7 @@ int main(int argc, char **argv)
         if (meja_tujuan == 3){
             for (int i = 1; i <= 3; i++){
                 if (lokasi_misi[i] == {}){
-                    lokasi_misi[i] == lokasi_meja[3];
+                    lokasi_misi[i] = lokasi_meja[3];
                 }
             }
         }
