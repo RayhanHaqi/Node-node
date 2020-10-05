@@ -134,7 +134,7 @@ int main(int argc, char **argv)
             }
         }
 
-        local_pos_pub.publish(pose);
+        cmd_pub.publish(cmd_msg);
         ros::spinOnce();
         rate.sleep();
     }
